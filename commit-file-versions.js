@@ -53,15 +53,15 @@ const files = raw
   ? raw.split('\n').map(line => line.slice(3)).filter(f => f !== scriptName)
   : [];
 
-// Support only files matching name[.number].extension
-const pattern = /^(.+?)(?:\.(\d+))?(\.[^\.]+)$/;
+// Support only files matching the pattern: name[.number].extension
+const namePattern = /^(.+?)(?:\.(\d+))?(\.[^\.]+)$/;
 let items = files
   .map(file => {
-    const m = pattern.exec(file);
+    const m = namePattern.exec(file);
     if (!m) return null;
     return { file, base: m[1], num: m[2] ? parseInt(m[2], 10) : 0, ext: m[3] };
   })
-  .filter(x => x !== null);
+  .filter(item => item !== null);
 
 // Apply exclude pattern if provided
 if (excludeRegex) {
@@ -73,7 +73,28 @@ if (items.length === 0) {
   process.exit(0);
 }
 
-// Sort by base, extension, then numeric suffix
+// Detect missing sequence numbers per group
+const groups = items.reduce((acc, item) => {
+  const key = item.base + item.ext;
+  if (!acc[key]) acc[key] = { base: item.base, ext: item.ext, nums: [] };
+  acc[key].nums.push(item.num);
+  return acc;
+}, {});
+
+for (const key in groups) {
+  const { base, ext, nums } = groups[key];
+  const max = Math.max(...nums);
+  const missing = [];
+  for (let i = 1; i <= max; i++) {
+    if (!nums.includes(i)) missing.push(i);
+  }
+  if (missing.length > 0) {
+    const missingFiles = missing.map(n => `${base}.${n}${ext}`).join(', ');
+    console.warn(`Warning: missing files in sequence for ${base}${ext} pattern: ${missingFiles}`);
+  }
+}
+
+// Sort by base name, extension, then numeric suffix
 items.sort((a, b) => {
   if (a.base < b.base) return -1;
   if (a.base > b.base) return 1;
@@ -82,11 +103,11 @@ items.sort((a, b) => {
   return a.num - b.num;
 });
 
-const sortedFiles = items.map(i => i.file);
+const sortedFiles = items.map(item => item.file);
 
 if (isPreview) {
   console.log('Preview mode: the files will be committed in the following order:');
-  sortedFiles.forEach((f, i) => console.log(`${i + 1}. ${f}`));
+  sortedFiles.forEach((file, idx) => console.log(`${idx + 1}. ${file}`));
   process.exit(0);
 }
 
