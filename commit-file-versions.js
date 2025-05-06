@@ -3,7 +3,8 @@
 const { execSync } = require('child_process');
 const path = require('path');
 
-// Determine this script's filename to exclude it from commits\ nconst scriptName = path.basename(__filename);
+// Determine this script's filename to exclude it from commits
+const scriptName = path.basename(__filename);
 
 // Check for --preview flag
 const isPreview = process.argv.includes('--preview');
@@ -11,9 +12,9 @@ const isPreview = process.argv.includes('--preview');
 // Retrieve uncommitted files via git status
 let files = [];
 try {
-  const status = execSync('git status --porcelain').toString().trim();
-  if (status) {
-    files = status
+  const statusOutput = execSync('git status --porcelain').toString().trim();
+  if (statusOutput) {
+    files = statusOutput
       .split('\n')
       .map(line => line.slice(3)) // file path starts at index 3
       .filter(file => file !== scriptName);
@@ -27,13 +28,13 @@ try {
 const pattern = /^(.+?)(?:\.(\d+))?(\.[^\.]+)$/;
 const parsed = files
   .map(file => {
-    const m = pattern.exec(file);
-    if (!m) return null;
+    const match = pattern.exec(file);
+    if (!match) return null;
     return {
       file,
-      base: m[1],
-      num: m[2] ? parseInt(m[2], 10) : 0,
-      ext: m[3]
+      base: match[1],
+      num: match[2] ? parseInt(match[2], 10) : 0,
+      ext: match[3]
     };
   })
   .filter(item => item !== null);
