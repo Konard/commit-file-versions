@@ -101,17 +101,37 @@ items.sort((a, b) => {
 
 const sortedFiles = items.map(i => i.file);
 
+// Preview mode: show rename and commit steps
 if (isPreview) {
   console.log('Preview mode: the files will be committed in the following order:');
-  sortedFiles.forEach((f, i) => console.log(`${i + 1}. ${f}`));
+  sortedFiles.forEach((file, index) => {
+    const m = namePattern.exec(file);
+    const target = `${m[1]}${m[3]}`;
+    if (file === target) {
+      console.log(`${index + 1}. Commit ${file}`);
+    } else {
+      console.log(`${index + 1}. Rename ${file} -> ${target} and commit`);
+    }
+  });
   process.exit(0);
 }
 
-// Sequentially add and commit each file
+// Sequentially rename (if needed), add and commit each file
 for (const file of sortedFiles) {
-  console.log(`Committing ${file}...`);
-  execSync(`git add "${file}"`);
-  execSync(`git commit -m "Add ${file}"`);
+  const m = namePattern.exec(file);
+  const base = m[1];
+  const ext = m[3];
+  const target = `${base}${ext}`;
+
+  if (file === target) {
+    console.log(`Committing ${file}...`);
+    execSync(`git add "${file}"`);
+    execSync(`git commit -m "Add ${file}"`);
+  } else {
+    console.log(`Renaming ${file} to ${target} and committing...`);
+    execSync(`git mv -f "${file}" "${target}"`);
+    execSync(`git commit -m "Renamed ${file} to ${target}"`);
+  }
 }
 
-console.log('All matching uncommitted files have been committed in order.');
+console.log('All matching uncommitted files have been committed and renamed in order.');
