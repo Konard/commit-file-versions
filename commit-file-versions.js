@@ -18,7 +18,8 @@ if (excludeIdx !== -1) {
   excludeRegex = globToRegex(pattern);
 }
 
-// Convert a simple glob pattern to a RegExp\ nfunction globToRegex(glob) {
+// Convert a simple glob pattern to a RegExp
+function globToRegex(glob) {
   const special = ['.', '+', '^', '$', '(', ')', '=', '!', '|', '{', '}', '[', ']', ':', '\\'];
   let str = '';
   for (const char of glob) {
@@ -80,8 +81,7 @@ for (const key in groups) {
   const { base, ext, nums } = groups[key];
   const max = Math.max(...nums);
   const missing = [];
-  for (let i = 1; i <= max; i++) {
-    if (i <= 2) continue;
+  for (let i = 3; i <= max; i++) {
     if (!nums.includes(i)) missing.push(i);
   }
   if (missing.length > 0) {
@@ -108,10 +108,10 @@ if (isPreview) {
 }
 
 // Sequentially add and commit each file
-sortedFiles.forEach(file => {
+for (const file of sortedFiles) {
   console.log(`Committing ${file}...`);
   execSync(`git add "${file}"`);
   execSync(`git commit -m "Add ${file}"`);
-});
+}
 
 console.log('All matching uncommitted files have been committed in order.');
