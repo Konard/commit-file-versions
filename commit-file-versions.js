@@ -69,7 +69,7 @@ if (items.length === 0) {
   process.exit(0);
 }
 
-// Detect missing sequence numbers per group (only warn for numbers > 2)
+// Detect missing sequence numbers per group (warn for any missing)
 const groups = items.reduce((acc, item) => {
   const key = item.base + item.ext;
   if (!acc[key]) acc[key] = { base: item.base, ext: item.ext, nums: [] };
@@ -81,7 +81,7 @@ for (const key in groups) {
   const { base, ext, nums } = groups[key];
   const max = Math.max(...nums);
   const missing = [];
-  for (let i = 3; i <= max; i++) {
+  for (let i = 1; i <= max; i++) {
     if (!nums.includes(i)) missing.push(i);
   }
   if (missing.length > 0) {
@@ -101,9 +101,9 @@ items.sort((a, b) => {
 
 const sortedFiles = items.map(i => i.file);
 
-// Preview mode: show rename and commit steps
+// Preview mode: show rename/update steps
 if (isPreview) {
-  console.log('Preview mode: the files will be committed in the following order:');
+  console.log('Preview mode: the files will be applied in the following order:');
   sortedFiles.forEach((file, index) => {
     const m = namePattern.exec(file);
     const target = `${m[1]}${m[3]}`;
@@ -116,7 +116,7 @@ if (isPreview) {
   process.exit(0);
 }
 
-// Sequentially rename (if needed), add and commit each file
+// Sequentially rename (if needed), then commit using Update message
 for (const file of sortedFiles) {
   const m = namePattern.exec(file);
   const base = m[1];
@@ -125,14 +125,21 @@ for (const file of sortedFiles) {
 
   if (file === target) {
     console.log(`Committing ${file}...`);
-    execSync(`git add "${file}"`);
-    execSync(`git commit -m "Add ${file}"`);
+    try {
+      execSync(`git add "${file}"`);
+      execSync(`git commit -m "Update ${target}"`);
+    } catch (err) {
+      console.warn(`Warning: commit failed for ${target}: ${err.message}`);
+    }
   } else {
     console.log(`Renaming ${file} to ${target} and committing...`);
-    execSync(`mv -f "${file}" "${target}"`);
-    execSync(`git add "${target}"`);
-    execSync(`git commit -m "Add ${target}"`);
+    try {
+      execSync(`mv -f "${file}" "${target}"`);
+      execSync(`git commit -a -m "Update ${target}"`);
+    } catch (err) {
+      console.warn(`Warning: commit failed for ${target}: ${err.message}`);
+    }
   }
 }
 
-console.log('All matching uncommitted files have been committed and renamed in order.');
+console.log('All matching uncommitted files have been updated and committed in order.');
