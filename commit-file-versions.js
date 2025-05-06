@@ -129,8 +129,9 @@ for (const file of sortedFiles) {
     execSync(`git commit -m "Add ${file}"`);
   } else {
     console.log(`Renaming ${file} to ${target} and committing...`);
-    execSync(`git mv -f "${file}" "${target}"`);
-    execSync(`git commit -m "Renamed ${file} to ${target}"`);
+    execSync(`mv -f "${file}" "${target}"`);
+    execSync(`git add "${target}"`);
+    execSync(`git commit -m "Add ${target}"`);
   }
 }
 
