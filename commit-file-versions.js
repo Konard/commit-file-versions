@@ -1,10 +1,6 @@
 #!/usr/bin/env node
 
 const { execSync } = require('child_process');
-const path = require('path');
-
-// Determine this script's filename to exclude it from commits
-const scriptName = path.basename(__filename);
 
 // Parse command-line arguments
 const args = process.argv.slice(2);
@@ -22,8 +18,7 @@ if (excludeIdx !== -1) {
   excludeRegex = globToRegex(pattern);
 }
 
-// Convert a simple glob pattern to a RegExp
-function globToRegex(glob) {
+// Convert a simple glob pattern to a RegExp\ nfunction globToRegex(glob) {
   const special = ['.', '+', '^', '$', '(', ')', '=', '!', '|', '{', '}', '[', ']', ':', '\\'];
   let str = '';
   for (const char of glob) {
@@ -50,7 +45,7 @@ try {
 }
 
 const files = raw
-  ? raw.split('\n').map(line => line.slice(3)).filter(f => f !== scriptName)
+  ? raw.split('\n').map(line => line.slice(3))
   : [];
 
 // Support only files matching the pattern: name[.number].extension
@@ -73,7 +68,7 @@ if (items.length === 0) {
   process.exit(0);
 }
 
-// Detect missing sequence numbers per group
+// Detect missing sequence numbers per group (only warn for numbers > 2)
 const groups = items.reduce((acc, item) => {
   const key = item.base + item.ext;
   if (!acc[key]) acc[key] = { base: item.base, ext: item.ext, nums: [] };
@@ -86,6 +81,7 @@ for (const key in groups) {
   const max = Math.max(...nums);
   const missing = [];
   for (let i = 1; i <= max; i++) {
+    if (i <= 2) continue;
     if (!nums.includes(i)) missing.push(i);
   }
   if (missing.length > 0) {
@@ -103,19 +99,19 @@ items.sort((a, b) => {
   return a.num - b.num;
 });
 
-const sortedFiles = items.map(item => item.file);
+const sortedFiles = items.map(i => i.file);
 
 if (isPreview) {
   console.log('Preview mode: the files will be committed in the following order:');
-  sortedFiles.forEach((file, idx) => console.log(`${idx + 1}. ${file}`));
+  sortedFiles.forEach((f, i) => console.log(`${i + 1}. ${f}`));
   process.exit(0);
 }
 
 // Sequentially add and commit each file
-for (const file of sortedFiles) {
+sortedFiles.forEach(file => {
   console.log(`Committing ${file}...`);
   execSync(`git add "${file}"`);
   execSync(`git commit -m "Add ${file}"`);
-}
+});
 
 console.log('All matching uncommitted files have been committed in order.');
